@@ -12,14 +12,31 @@ import MessageUI
 class ViewController: UIViewController, AVCaptureFileOutputRecordingDelegate, AVCaptureMetadataOutputObjectsDelegate, MFMailComposeViewControllerDelegate {
     
     func enviarCorreo(_ codigoAenviar: String) {
-        let mcvc = MFMailComposeViewController()
-        mcvc.mailComposeDelegate = self
-        mcvc.setToRecipients(["jan.zelaznog@gmail.com"])
-        mcvc.setMessageBody("<strong>Encontré un código! " + codigoAenviar, isHTML: true)
-        
+        // primero hay que detectar que SI se pueden enviar correos (debe estar configurada una cuenta en la aplicación de correo del dispositivo)
+        if MFMailComposeViewController.canSendMail() {
+            let mcvc = MFMailComposeViewController()
+            mcvc.mailComposeDelegate = self
+            mcvc.setToRecipients(["jan.zelaznog@gmail.com"])
+            mcvc.setSubject("Correo enviado desde el app mas bonita del mundo mundial")
+            mcvc.setMessageBody("<strong>Encontré un código! " + codigoAenviar + "</strong>", isHTML: true)
+            self.present(mcvc, animated: true)
+        }
+    }
+    
+    func compartir (_ codigoAenviar: String) {
+        let elementos = [codigoAenviar, URL(string: "https://www.unam.mx")!] as [Any]
+        let avc = UIActivityViewController(activityItems: elementos, applicationActivities:nil)
+        self.present(avc, animated: true)
     }
     
     // MARK: - Métodos de los protocolos
+    func mailComposeController(_ controller: MFMailComposeViewController, didFinishWith result: MFMailComposeResult, error: Error?) {
+        // deberíamos hacer algo si no se pudo enviar?
+        //...
+        // cerramos el controller de correo
+        controller.dismiss(animated: true)
+    }
+    
     func metadataOutput(_ output: AVCaptureMetadataOutput, didOutput metadataObjects: [AVMetadataObject], from connection: AVCaptureConnection) {
         // identificamos si hay un objeto
         if let objetoLeido = metadataObjects.first {
@@ -28,12 +45,17 @@ class ViewController: UIViewController, AVCaptureFileOutputRecordingDelegate, AV
             else { return }
             guard let cadena = codigoLeido.stringValue else { return }
             let ac = UIAlertController(title:"CODIGO ENCONTRADO", message:cadena, preferredStyle: .alert)
-            let action = UIAlertAction(title: "Enterado", style: .default) {
+            let action = UIAlertAction(title: "Enviar por mail", style: .default) {
                 action in
                 // enviar por correo el código detectado
                 self.enviarCorreo(cadena)
             }
             ac.addAction(action)
+            let action2 = UIAlertAction(title: "Compartir", style:.destructive) {
+                action2 in
+                self.compartir(cadena)
+            }
+            ac.addAction(action2)
             self.present(ac, animated: true)
         }
     }
